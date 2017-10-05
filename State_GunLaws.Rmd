@@ -1,0 +1,76 @@
+---
+title: "State_GunLaws"
+author: "Jenny"
+date: "10/3/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load packages
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(emoGG)
+```
+
+Read in datasets. Overlap for 1999 to 2015 , which can be combined.
+
+1. Gun law data, firearm laws across US States from 1991 to 2017 https://www.kaggle.com/jboysen/state-firearms
+https://www.statefirearmlaws.org/report/SFL-Report-2016.pdf
+
+Presense/absense of a given gun law in a state is coded as "1" or "0". These are being read as numeric by R. So is Year variable. Need to change all to factor variables. State variable is already read as factor variable.
+
+2. CDC cause of death by State from firearms 1999 to 2015 data. https://wonder.cdc.gov/ucd-icd10.html
+
+When attempting to download data from CDC including gender, stats from some states for some years were suppressed. When numbers are low, CDC will not release data, to protect individuals' identity. So, I removed gender as a variable, in order to get the death rate for each state for each year.
+
+```{r}
+state_gunlaws <- read.csv("gunlawdata.csv", header = TRUE)
+
+state_homicides <- read.csv("GunDeaths99_15.csv", header = TRUE)
+
+```
+Change Year from numeric to factor and get rid of unneeded variables.
+```{r}
+
+state_homicides$Year <- as.factor(state_homicides$Year)
+
+state_homicides <- state_homicides[,-c(2,4)]
+
+```
+
+state_gunlaws dataframe Years are integer, change to factor
+```{r}
+
+names(state_gunlaws)[2] <- "Year"
+state_gunlaws$Year <- as.factor(state_gunlaws$Year)
+names(state_gunlaws)[1] <- "State"
+```
+
+Combine data & make scatter plot
+```{r}
+state_gundata <- merge(state_gunlaws, state_homicides, by= c("State", "Year"))
+state_gundata$Year <- droplevels(state_gundata$Year)
+
+plot(state_gundata$lawtotal, state_gundata$Rate.Per.100K)
+```
+
+Make graph using only 2015 data.
+
+```{r}
+GunPlot <- ggplot(subset(state_gundata, Year == "2015"), aes(lawtotal, Rate.Per.100K)) + 
+        geom_emoji(emoji = "1f52b") +
+        theme_minimal() +
+        theme(axis.title.x = element_text(size = 14), 
+              axis.title.y = element_text(size = 14),
+              plot.title = element_text(hjust = .5)) +
+        annotate("text", x = 53, 
+                 y = 20, label = "Deaths From Firearms (homicide, suicide, accident) \n& Gun Restriction Laws in Each State: 2015\nWhere would you want your loved ones to live?", size = 5) +
+        labs(y = "Deaths Per 100,000 By Guns \nMore Dead People ---------------------------->", x = "Total Gun Restriction Laws \nHarder to Get Guns, Because More State Gun Laws ---------------------------> \n ", title = "To find out about your state, go to\nhttps://www.statefirearmlaws.org/report/SFL-Report-2016.pdf", caption="@jblistman. Data sources: CDC & statefirearmlaws.org")
+
+GunPlot
+
+```
